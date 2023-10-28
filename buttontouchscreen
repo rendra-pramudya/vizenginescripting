@@ -1,0 +1,46 @@
+'Map button code
+'Rendra Adi Pramudya
+'Aljazeera Doha
+'28 October 2023
+
+sub OnLButtonDown()
+Dim ibtnMode as integer = GetParameterInt("cButtonMode")
+Dim thisname as String = this.name
+Dim cTelestrator as Container = GetParameterContainer("cTelestrator")
+thisname.MakeLower()
+println thisname
+If thisname = "clear" Then
+cTelestrator.GetFunctionPluginInstance("3DMapTelestrator").Pushbutton("clear")
+ElseIf thisname = "undo" Then
+ElseIf thisname = "redo" Then
+Else
+	cTelestrator.GetFunctionPluginInstance("3DMapTelestrator").SetParameterString("design_name", this.name)
+End If
+If ibtnMode = 0 then
+This.GetChildContainerByIndex(0).Active = False
+This.GetChildContainerByIndex(1).Active = True
+elseif ibtnMode = 1 Then
+elseif ibtnMode = 2 Then
+End If
+
+end sub
+
+sub OnLButtonUp()
+Dim ibtnMode as integer = GetParameterInt("cButtonMode")
+If ibtnMode = 0 then
+This.GetChildContainerByIndex(0).Active = True
+This.GetChildContainerByIndex(1).Active = False
+elseif ibtnMode = 1 Then
+elseif ibtnMode = 2 Then
+End If
+end sub
+
+sub OnInitParameters()
+Dim arrButton as array[string]
+arrButton.Clear
+arrButton.push "Push Button"
+arrButton.push "Radio Button"
+arrButton.push "Check Box"
+RegisterRadioButton("cButtonMode", "Button Mode", 0, arrButton)
+RegisterParameterContainer("cTelestrator", "Telestrator Container")
+end sub
