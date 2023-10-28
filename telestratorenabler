@@ -1,0 +1,44 @@
+'Telestrator Enabler, to be used with 3DMapTelestrator Plugin
+'Rendra Adi Pramudya
+'Aljazeera Doha
+'28 October 2023
+
+Dim oripos as vertex
+Dim newpos as vertex
+
+sub OnInitParameters()
+RegisterParameterContainer("debugcont", "debug container")
+end sub
+
+sub OnButtonDown6DOF(button As Integer, pos As Vertex, rot As Vertex)
+
+oripos.x = pos.x
+oripos.y = pos.y
+ 
+end sub
+
+sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)
+
+newpos.x = pos.x
+newpos.y = pos.y
+Dim d as String
+If newpos.x > oripos.x and newpos.y > oripos.y Then
+	d = msgbox("QUADRANT 1")
+ElseIf newpos.x > oripos.x and newpos.y < oripos.y Then	
+	d = msgbox("QUADRANT 2")
+ElseIf newpos.x < oripos.x and newpos.y < oripos.y Then	
+	d = msgbox("QUADRANT 3")
+ElseIf newpos.x < oripos.x and newpos.y > oripos.y Then	
+	d = msgbox("QUADRANT 4"	)
+End If
+end sub
+
+Function msgbox(str as string) as String
+Dim c as container = GetParameterContainer("debugcont")
+If c <> Null Then
+c.Geometry.Text = str
+Else
+	println str
+End If
+End Function
+
