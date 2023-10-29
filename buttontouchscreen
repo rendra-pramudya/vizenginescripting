@@ -44,3 +44,12 @@ arrButton.push "Check Box"
 RegisterRadioButton("cButtonMode", "Button Mode", 0, arrButton)
 RegisterParameterContainer("cTelestrator", "Telestrator Container")
 end sub
+
+Function msgbox(str as string) as String
+Dim c as container = GetParameterContainer("debugcont")
+If c <> Null Then
+c.Geometry.Text = str
+Else
+	println str
+End If
+End Function
