@@ -1,0 +1,43 @@
+
+'handling multitouch
+sub OnMTHit(stroke As Integer, x As Integer, y As Integer)
+ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
+end sub
+
+sub OnMTControlPZR2D(x As Integer, y As Integer, rot As Vertex, scale As Vertex, pressure As Double)
+ScriptPluginInstance.MTSetPosition(x, System.RenderWindowHeight - y)
+'Scaling.xyz = Scale
+'Rotation.xyz = Rot
+end sub
+
+sub OnMTControlInactive()
+	'Scene.FindContainer("debug").Geometry.Text = This.name & " is inactive"
+end sub
+
+'handling mouse
+
+sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
+Dim cTarget as Container = GetParameterContainer("ctarget")
+Dim v1, v2 as vertex
+Dim cY, cX as integer
+
+cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+If This.ContainsMouseCursor then
+	
+	This.Position.x = this.position.x + pos.x
+	This.Position.y = this.position.y + pos.y
+	this.GetScreenPositionOrtho(cX, cY)	
+	Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
+End If
+If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+	this.alpha.value = 75
+Else
+	this.alpha.value = 100
+End If
+end sub
+
+
+
+sub OnInitParameters()
+RegisterParameterContainer("ctarget", "Target Container")
+end sub
