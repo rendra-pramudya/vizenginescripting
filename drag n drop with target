@@ -1,4 +1,3 @@
-
 'handling multitouch
 sub OnMTHit(stroke As Integer, x As Integer, y As Integer)
 ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
@@ -20,7 +19,7 @@ sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
 Dim cTarget as Container = GetParameterContainer("ctarget")
 Dim v1, v2 as vertex
 Dim cY, cX as integer
-
+Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
 cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
 If This.ContainsMouseCursor then
 	
@@ -28,16 +27,42 @@ If This.ContainsMouseCursor then
 	This.Position.y = this.position.y + pos.y
 	this.GetScreenPositionOrtho(cX, cY)	
 	Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
-End If
+Else
 If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
 	this.alpha.value = 75
 Else
 	this.alpha.value = 100
+	this.position.xyz = oriPoint
+End If
 End If
 end sub
 
-
-
 sub OnInitParameters()
 RegisterParameterContainer("ctarget", "Target Container")
+RegisterParameterDouble("oriX", "original X", 0, -5000000, 5000000)
+RegisterParameterDouble("oriY", "original Y", 0, -5000000, 5000000)
+RegisterParameterDouble("oriZ", "original Z", 0, -5000000, 5000000)
+RegisterPushButton("memorize", "memorize", 0)
+end sub
+sub OnExecAction(buttonId As Integer)
+If buttonID = 0 then
+ScriptPluginInstance.SetParameterDouble("oriX", this.position.x)
+ScriptPluginInstance.SetParameterDouble("oriY", this.position.y)
+ScriptPluginInstance.SetParameterDouble("oriZ", this.position.z)
+End If
+end sub
+
+sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)
+Dim v1, v2 as vertex
+Dim cY, cX as integer
+Dim cTarget as Container = GetParameterContainer("ctarget")
+Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
+cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+this.GetScreenPositionOrtho(cX, cY)	
+If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+	this.alpha.value = 75
+Else
+	this.alpha.value = 100
+	this.position.xyz = oriPoint
+End If
 end sub
