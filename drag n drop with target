@@ -1,43 +1,172 @@
 'handling multitouch
+'global variable
+Dim isScaling, isRotation as Boolean
+Dim cTarget as Container
+Dim hasTarget as Boolean
+
+sub OnInitParameters()
+RegisterParameterContainer("ctarget", "Target Container")
+RegisterParameterDouble("oriPosX", "original Pos X", 0, -5000000, 5000000)
+RegisterParameterDouble("oriPosY", "original Pos Y", 0, -5000000, 5000000)
+RegisterParameterDouble("oriPosZ", "original Pos Z", 0, -5000000, 5000000)
+
+RegisterParameterDouble("oriRotX", "original Rot X", 0, -360, 360)
+RegisterParameterDouble("oriRotY", "original Rot Y", 0, -360, 360)
+RegisterParameterDouble("oriRotZ", "original Rot Z", 0, -360, 360)
+
+RegisterParameterDouble("oriSclX", "original Scale X", 0, -5000000, 5000000)
+RegisterParameterDouble("oriSclY", "original Scale Y", 0, -5000000, 5000000)
+RegisterParameterDouble("oriSclZ", "original Scale Z", 0, -5000000, 5000000)
+
+RegisterParameterDouble("oriAxisX", "original Axis X", 0, -5000000, 5000000)
+RegisterParameterDouble("oriAxisY", "original Axis Y", 0, -5000000, 5000000)
+RegisterParameterDouble("oriAxisZ", "original Axis Z", 0, -5000000, 5000000)
+
+RegisterParameterBool("isScaling", "Enable Scaling", False)
+RegisterParameterBool("isRotation", "Enable Rotation", False)
+RegisterPushButton("memorize", "memorize", 0)
+end sub
+
+sub OnInit()
+	hasTarget = True
+	isScaling = GetParameterBool("isScaling")
+	isRotation = GetParameterBool("isRotation")	
+	cTarget = GetParameterContainer("ctarget")
+	If cTarget = Null Then
+	hasTarget = False
+	End If
+end sub
+
 sub OnMTHit(stroke As Integer, x As Integer, y As Integer)
-ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
+	ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
 end sub
 
 sub OnMTControlPZR2D(x As Integer, y As Integer, rot As Vertex, scale As Vertex, pressure As Double)
-ScriptPluginInstance.MTSetPosition(x, System.RenderWindowHeight - y)
-'Scaling.xyz = Scale
-'Rotation.xyz = Rot
-end sub
-
-sub OnMTControlInactive()
-	'Scene.FindContainer("debug").Geometry.Text = This.name & " is inactive"
-end sub
-
-'handling mouse
-
-sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
-Dim cTarget as Container = GetParameterContainer("ctarget")
 Dim v1, v2 as vertex
 Dim cY, cX as integer
-Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
+
+ScriptPluginInstance.MTSetPosition(x, System.RenderWindowHeight - y)
+If isScaling then
+	Scaling.xyz = Scale
+End If
+If isRotation then
+	Rotation.xyz = Rot
+End If
 cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-If This.ContainsMouseCursor then
-	
-	This.Position.x = this.position.x + pos.x
-	This.Position.y = this.position.y + pos.y
-	this.GetScreenPositionOrtho(cX, cY)	
-	Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
-Else
+cTarget.GetScreenBounds(v1, v2)
+this.GetScreenPositionOrtho(cX, cY)
+Scene.FindContainer("debug").Geometry.Text = cX & ">" & v1.x & " and " & cX & " < " & v2.x & " and " & cY & " > " &  v1.y & " and " & cY & " < " & v2.y
+'Scene.FindContainer("debug").Geometry.Text = ctarget.name
 If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
 	this.alpha.value = 75
 Else
 	this.alpha.value = 100
-	this.position.xyz = oriPoint
-End If
 End If
 end sub
 
-sub OnInitParameters()
+sub OnMTControlInactive()
+cTarget = GetParameterContainer("ctarget")
+Dim v1, v2 as vertex
+Dim cY, cX as integer
+Dim oriPos as Vertex = CVertex(GetParameterDouble("oriPosX"), GetParameterDouble("oriPosY"), GetParameterDouble("oriPosZ"))
+Dim oriRot as Vertex = CVertex(GetParameterDouble("oriRotX"), GetParameterDouble("oriRotY"), GetParameterDouble("oriRotZ"))
+Dim oriScl as Vertex = CVertex(GetParameterDouble("oriSclX"), GetParameterDouble("oriSclY"), GetParameterDouble("oriSclZ"))
+Dim oriAxis as Vertex = CVertex(GetParameterDouble("oriAxisX"), GetParameterDouble("oriAxisY"), GetParameterDouble("oriAxisZ"))
+cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+cTarget.GetScreenBounds(v1, v2)
+this.GetScreenPositionOrtho(cX, cY)
+
+Scene.FindContainer("debug").Geometry.Text = cX & ">" & v1.x & " and " & cX & " < " & v2.x & " and " & cY & " > " &  v1.y & " and " & cY & " < " & v2.y
+'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+'	this.alpha.value = 60
+'Else
+'	this.alpha.value = 100
+'	this.position.xyz = oriPos
+'	this.Rotation.xyz = oriRot
+'	this.Scaling.xyz = oriScl
+'	this.center.xyz = oriAxis
+'End If
+end sub
+
+
+
+'handling mouse
+'
+'sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
+'Dim v1, v2 as vertex
+'Dim cY, cX as integer
+'Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
+'cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+'If This.ContainsMouseCursor then
+'	
+'	This.Position.x = this.position.x + pos.x
+'	This.Position.y = this.position.y + pos.y
+'	this.GetScreenPositionOrtho(cX, cY)	
+'	Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
+'Else
+'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+'	this.alpha.value = 75
+'Else
+'	this.alpha.value = 100
+'	If hasTarget = True then
+'		this.position.xyz = oriPoint
+'	end If
+'End If
+'End If
+'end sub
+'
+'sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)
+'Dim v1, v2 as vertex
+'Dim cY, cX as integer
+'
+'Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
+'cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+'this.GetScreenPositionOrtho(cX, cY)	
+'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+'	this.alpha.value = 75
+'Else
+'	this.alpha.value = 100
+'	If hasTarget = True then
+'		this.position.xyz = oriPoint
+'	end If
+'	scene.findcontainer("debug").geometry.text = "from OnButtonUp6DOF"
+'End If
+'end sub
+
+
+
+
+sub OnExecAction(buttonId As Integer)
+If buttonID = 0 then 'memorize
+	ScriptPluginInstance.SetParameterDouble("oriPosX", this.position.x)
+	ScriptPluginInstance.SetParameterDouble("oriPosY", this.position.y)
+	ScriptPluginInstance.SetParameterDouble("oriPosZ", this.position.z)
+	ScriptPluginInstance.SetParameterDouble("oriRotX", this.rotation.x)
+	ScriptPluginInstance.SetParameterDouble("oriRotY", this.rotation.y)
+	ScriptPluginInstance.SetParameterDouble("oriRotZ", this.rotation.z)
+	ScriptPluginInstance.SetParameterDouble("oriSclX", this.scaling.x)
+	ScriptPluginInstance.SetParameterDouble("oriSclY", this.scaling.y)
+	ScriptPluginInstance.SetParameterDouble("oriSclZ", this.scaling.z)
+	ScriptPluginInstance.SetParameterDouble("oriAxisX", this.center.x)
+	ScriptPluginInstance.SetParameterDouble("oriAxisY", this.center.y)
+	ScriptPluginInstance.SetParameterDouble("oriAxisZ", this.center.z)
+End If
+end sub
+
+
+
+sub OnParameterChanged(parameterName As String)
+If parameterName = "isScaling" Then
+	isScaling = GetParameterBool("isScaling")
+End If
+
+If parameterName = "isRotation" Then
+	isRotation = GetParameterBool("isRotation")
+End If
+end sub
+
+
+
 RegisterParameterContainer("ctarget", "Target Container")
 RegisterParameterDouble("oriX", "original X", 0, -5000000, 5000000)
 RegisterParameterDouble("oriY", "original Y", 0, -5000000, 5000000)
