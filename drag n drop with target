@@ -1,3 +1,8 @@
+'Drag and Drop with Target
+'Rendra Adi Pramudya
+'Aljazeera Doha
+'28 October 2023
+
 'handling multitouch
 'global variable
 Dim isScaling, isRotation as Boolean
@@ -150,8 +155,6 @@ If touchMode =  0 then
 		this.position.x = this.Position.x + pos.x    
 		this.position.y = this.position.y + pos.y
 		this.GetScreenPositionOrtho(cX, cY)	
-'		Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
-'		Scene.FindContainer("debug").Geometry.Text = this.name & " dragging"
 	Else
 		If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
 			this.alpha.value = 75
@@ -168,10 +171,6 @@ If touchMode =  0 then
 	End If
 End If
 end sub
-
-
-
-
 
 sub OnExecAction(buttonId As Integer)
 If buttonID = 0 then 'memorize
