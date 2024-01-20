@@ -3,8 +3,14 @@
 Dim isScaling, isRotation as Boolean
 Dim cTarget as Container
 Dim hasTarget as Boolean
+Dim touchMode as Integer
+Dim isMouseDown as Boolean
 
 sub OnInitParameters()
+Dim buttonNames as array[string]
+buttonNames.push ("Mouse")
+buttonNames.push ("Multitouch")
+RegisterRadioButton("touchMode", "Touch Mode", 1, buttonNames)
 RegisterParameterContainer("ctarget", "Target Container")
 RegisterParameterDouble("oriPosX", "original Pos X", 0, -5000000, 5000000)
 RegisterParameterDouble("oriPosY", "original Pos Y", 0, -5000000, 5000000)
@@ -38,29 +44,37 @@ sub OnInit()
 end sub
 
 sub OnMTHit(stroke As Integer, x As Integer, y As Integer)
-	ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
+	touchMode = GetParameterInt("touchMode") '0 = mouse, 1 = Multitouch
+	If touchMode = 1 then
+		ScriptPluginInstance.MTRegister(stroke, MT_CONTROL_PZR2D)
+	End If
 end sub
 
 sub OnMTControlPZR2D(x As Integer, y As Integer, rot As Vertex, scale As Vertex, pressure As Double)
 Dim v1, v2 as vertex
 Dim cY, cX as integer
-
-ScriptPluginInstance.MTSetPosition(x, System.RenderWindowHeight - y)
-If isScaling then
-	Scaling.xyz = Scale
-End If
-If isRotation then
-	Rotation.xyz = Rot
-End If
-cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-cTarget.GetScreenBounds(v1, v2)
-this.GetScreenPositionOrtho(cX, cY)
-Scene.FindContainer("debug").Geometry.Text = cX & ">" & v1.x & " and " & cX & " < " & v2.x & " and " & cY & " > " &  v1.y & " and " & cY & " < " & v2.y
-'Scene.FindContainer("debug").Geometry.Text = ctarget.name
-If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
-	this.alpha.value = 75
-Else
-	this.alpha.value = 100
+touchMode = GetParameterInt("touchMode")
+If touchMode = 1 then
+	isScaling = GetParameterBool("isScaling")
+	isRotation = GetParameterBool("isRotation")
+	
+	ScriptPluginInstance.MTSetPosition(x, System.RenderWindowHeight - y)
+	
+	If isScaling then
+		Scaling.xyz = Scale
+	End If
+	If isRotation then
+		Rotation.xyz = Rot
+	End If
+	cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+	cTarget.GetScreenBounds(v1, v2)
+	this.GetScreenPositionOrtho(cX, cY)
+	
+	If cX > v1.x and cX < v2.x and System.RenderWindowHeight-cY > v1.y and System.RenderWindowHeight-cY < v2.y Then
+		this.alpha.value = 75
+	Else
+		this.alpha.value = 100
+	End If
 End If
 end sub
 
@@ -68,70 +82,93 @@ sub OnMTControlInactive()
 cTarget = GetParameterContainer("ctarget")
 Dim v1, v2 as vertex
 Dim cY, cX as integer
+touchMode = GetParameterInt("touchMode")
 Dim oriPos as Vertex = CVertex(GetParameterDouble("oriPosX"), GetParameterDouble("oriPosY"), GetParameterDouble("oriPosZ"))
 Dim oriRot as Vertex = CVertex(GetParameterDouble("oriRotX"), GetParameterDouble("oriRotY"), GetParameterDouble("oriRotZ"))
 Dim oriScl as Vertex = CVertex(GetParameterDouble("oriSclX"), GetParameterDouble("oriSclY"), GetParameterDouble("oriSclZ"))
 Dim oriAxis as Vertex = CVertex(GetParameterDouble("oriAxisX"), GetParameterDouble("oriAxisY"), GetParameterDouble("oriAxisZ"))
-cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-cTarget.GetScreenBounds(v1, v2)
-this.GetScreenPositionOrtho(cX, cY)
-
-Scene.FindContainer("debug").Geometry.Text = cX & ">" & v1.x & " and " & cX & " < " & v2.x & " and " & cY & " > " &  v1.y & " and " & cY & " < " & v2.y
-'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
-'	this.alpha.value = 60
-'Else
-'	this.alpha.value = 100
-'	this.position.xyz = oriPos
-'	this.Rotation.xyz = oriRot
-'	this.Scaling.xyz = oriScl
-'	this.center.xyz = oriAxis
-'End If
+If touchMode = 1 then
+	cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+	cTarget.GetScreenBounds(v1, v2)
+	this.GetScreenPositionOrtho(cX, cY)
+	
+	If cTarget = Null Then
+		hasTarget = False
+	End If
+	
+	If hasTarget = True then
+		If cX > v1.x and cX < v2.x and System.RenderWindowHeight-cY > v1.y and System.RenderWindowHeight-cY < v2.y Then
+			this.alpha.value = 75
+		Else
+			this.alpha.value = 100
+			this.position.xyz = oriPos
+			this.Rotation.xyz = oriRot
+			this.Scaling.xyz = oriScl
+			this.center.xyz = oriAxis
+		End If
+	End If
+End If
 end sub
 
 
 
 'handling mouse
 '
-'sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
-'Dim v1, v2 as vertex
-'Dim cY, cX as integer
-'Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
-'cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-'If This.ContainsMouseCursor then
-'	
-'	This.Position.x = this.position.x + pos.x
-'	This.Position.y = this.position.y + pos.y
-'	this.GetScreenPositionOrtho(cX, cY)	
-'	Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
-'Else
-'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
-'	this.alpha.value = 75
-'Else
-'	this.alpha.value = 100
-'	If hasTarget = True then
-'		this.position.xyz = oriPoint
-'	end If
-'End If
-'End If
-'end sub
-'
-'sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)
-'Dim v1, v2 as vertex
-'Dim cY, cX as integer
-'
-'Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
-'cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-'this.GetScreenPositionOrtho(cX, cY)	
-'If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
-'	this.alpha.value = 75
-'Else
-'	this.alpha.value = 100
-'	If hasTarget = True then
-'		this.position.xyz = oriPoint
-'	end If
-'	scene.findcontainer("debug").geometry.text = "from OnButtonUp6DOF"
-'End If
-'end sub
+
+sub OnLButtonDown()
+If this.ContainsMouseCursor() Then
+	isMouseDown = True
+	scene.FindCOntainer("debug").Geometry.Text = this.name & " isMouseDown = True"
+End If
+end sub
+
+sub OnLButtonUp()
+If this.ContainsMouseCursor() Then
+	isMouseDown = False
+	scene.FindCOntainer("debug").Geometry.Text = this.name & " isMouseDown = False"
+End If
+end sub
+
+
+
+sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)
+
+cTarget = GetParameterContainer("ctarget")
+Dim v1, v2 as vertex
+Dim cY, cX as integer
+Dim oriPos as Vertex = CVertex(GetParameterDouble("oriPosX"), GetParameterDouble("oriPosY"), GetParameterDouble("oriPosZ"))
+Dim oriRot as Vertex = CVertex(GetParameterDouble("oriRotX"), GetParameterDouble("oriRotY"), GetParameterDouble("oriRotZ"))
+Dim oriScl as Vertex = CVertex(GetParameterDouble("oriSclX"), GetParameterDouble("oriSclY"), GetParameterDouble("oriSclZ"))
+Dim oriAxis as Vertex = CVertex(GetParameterDouble("oriAxisX"), GetParameterDouble("oriAxisY"), GetParameterDouble("oriAxisZ"))
+touchMode = GetParameterInt("touchMode")
+If cTarget = Null Then
+	hasTarget = False
+End If
+If touchMode =  0 then
+	'cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
+	If isMouseDown then	
+		this.position.x = this.Position.x + pos.x    
+		this.position.y = this.position.y + pos.y
+		this.GetScreenPositionOrtho(cX, cY)	
+'		Scene.FindContainer("debug").Geometry.Text = cX & ":" & cY & " === " & v1.x &":" & v1.y & " === " & v2.x &":" & v2.y
+'		Scene.FindContainer("debug").Geometry.Text = this.name & " dragging"
+	Else
+		If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
+			this.alpha.value = 75
+		Else
+			this.alpha.value = 100
+			If hasTarget = True then
+				this.alpha.value = 100
+				this.position.xyz = oriPos
+				this.Rotation.xyz = oriRot
+				this.Scaling.xyz = oriScl
+				this.center.xyz = oriAxis
+			end If
+		End If
+	End If
+End If
+end sub
+
 
 
 
@@ -167,31 +204,4 @@ end sub
 
 
 
-RegisterParameterContainer("ctarget", "Target Container")
-RegisterParameterDouble("oriX", "original X", 0, -5000000, 5000000)
-RegisterParameterDouble("oriY", "original Y", 0, -5000000, 5000000)
-RegisterParameterDouble("oriZ", "original Z", 0, -5000000, 5000000)
-RegisterPushButton("memorize", "memorize", 0)
-end sub
-sub OnExecAction(buttonId As Integer)
-If buttonID = 0 then
-ScriptPluginInstance.SetParameterDouble("oriX", this.position.x)
-ScriptPluginInstance.SetParameterDouble("oriY", this.position.y)
-ScriptPluginInstance.SetParameterDouble("oriZ", this.position.z)
-End If
-end sub
 
-sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)
-Dim v1, v2 as vertex
-Dim cY, cX as integer
-Dim cTarget as Container = GetParameterContainer("ctarget")
-Dim oriPoint as Vertex = CVertex(GetParameterDouble("oriX"), GetParameterDouble("oriY"), GetParameterDouble("oriZ"))
-cTarget.GetScreenBoundsProjectOnEditorResolution(v1, v2)
-this.GetScreenPositionOrtho(cX, cY)	
-If cX > v1.x and cX < v2.x and cY > v1.y and cY < v2.y Then
-	this.alpha.value = 75
-Else
-	this.alpha.value = 100
-	this.position.xyz = oriPoint
-End If
-end sub
