@@ -1,0 +1,125 @@
+Dim ticks as integer
+Dim arrData as array[string]
+Dim totalValue as Double
+Dim A1, A2, A3 as Double 
+Dim R1, R2, R3 as Double 
+Dim V1, V2, V3 as Double 
+Dim prevresult as string
+Dim result as string
+
+sub OnExecPerField()
+	ticks = ticks + 1
+		If ticks > 20 Then
+			ticks = 1
+			ExecuteRead()
+		End If
+end sub
+
+Sub ExecuteRead()
+Dim filepath as string = "c:/temp/result.txt"
+Dim dirtime as Double
+Dim pilot1time as double
+dirtime = This.FirstChildContainer.GetDirector().Time 
+pilot1time = This.FirstChildContainer.GetDirector().FindKeyframe("pilot1").Time 
+	If System.LoadTextFile(filepath, result) = True Then
+		result.Split(";", arrdata)
+		V1 = Cdbl(arrdata[1])
+		V2 = Cdbl(arrdata[3])		
+		V3 = Cdbl(arrdata[5])				
+		totalValue = V1+V2+V3
+		A1 = 360*(V1/totalValue)
+		A2 = 360*(V2/totalValue)
+		A3 = 360*(V3/totalValue)				
+		R1 = 0      
+		R2 = R1 + A1
+		R3 = R2 + A2	
+		If prevresult <> result and dirtime = pilot1time Then
+			AnimateValue()
+		End If			
+	Else
+
+	End If	
+End Sub
+
+
+Sub ExecuteBegin()
+Dim dir as Director
+Dim p1, p2, p3 as Container
+
+p1 = this.FindSubContainer("Pie1")
+p2 = this.FindSubContainer("Pie2")
+p3 = this.FindSubContainer("Pie3")
+p1.FindKeyframe("A1-1").FloatValue = A1
+p1.FindKeyframe("A1-2").FloatValue = A1
+p1.FindKeyframe("A1-3").FloatValue = A1
+p1.FindKeyframe("R1-1").FloatValue = R1
+p1.FindKeyframe("R1-2").FloatValue = R1
+p1.FindKeyframe("R1-3").FloatValue = R1
+
+p2.FindKeyframe("A2-1").FloatValue = A2
+p2.FindKeyframe("A2-2").FloatValue = A2
+p2.FindKeyframe("A2-3").FloatValue = A2
+p2.FindKeyframe("R2-1").FloatValue = R2
+p2.FindKeyframe("R2-2").FloatValue = R2
+p2.FindKeyframe("R2-3").FloatValue = R2   
+
+p3.FindKeyframe("A3-1").FloatValue = A3
+p3.FindKeyframe("A3-2").FloatValue = A3
+p3.FindKeyframe("A3-3").FloatValue = A3
+p3.FindKeyframe("R3-1").FloatValue = R3
+p3.FindKeyframe("R3-2").FloatValue = R3
+p3.FindKeyframe("R3-3").FloatValue = R3   
+
+End Sub
+
+Sub ExecuteCopy()
+Dim dir as Director 
+Dim p1, p2, p3 as Container
+p1 = this.FindSubContainer("Pie1")
+p2 = this.FindSubContainer("Pie2")
+p3 = this.FindSubContainer("Pie3")
+dir = p1.GetDirector()
+p1.FindKeyframe("A1-2").FloatValue = p1.FindKeyframe("A1-3").FloatValue
+p1.FindKeyframe("R1-2").FloatValue = p1.FindKeyframe("R1-3").FloatValue
+
+p2.FindKeyframe("A2-2").FloatValue = p2.FindKeyframe("A2-3").FloatValue
+p2.FindKeyframe("R2-2").FloatValue = p2.FindKeyframe("R2-3").FloatValue
+
+p3.FindKeyframe("A3-2").FloatValue = p3.FindKeyframe("A3-3").FloatValue
+p3.FindKeyframe("R3-2").FloatValue = p3.FindKeyframe("R3-3").FloatValue
+
+dir.time = dir.FindKeyframe("pilot1").Time
+End Sub
+
+
+
+sub OnInitParameters()
+RegisterPushButton("executebegin", "executebegin", 0)
+RegisterPushButton("executecopy", "executecopy", 1)
+end sub
+
+Sub AnimateValue()
+Dim p1, p2, p3 as Container
+p1 = this.FindSubContainer("Pie1")
+p2 = this.FindSubContainer("Pie2")
+p3 = this.FindSubContainer("Pie3")
+p1.FindKeyframe("A1-3").FloatValue = A1
+p1.FindKeyframe("R1-3").FloatValue = R1
+
+p2.FindKeyframe("A2-3").FloatValue = A2
+p2.FindKeyframe("R2-3").FloatValue = R2
+
+p3.FindKeyframe("A3-3").FloatValue = A3
+p3.FindKeyframe("R3-3").FloatValue = R3
+P1.GetDirector().ContinueAnimation()
+End Sub
+
+sub OnExecAction(buttonId As Integer)
+If buttonId = 0 then
+ExecuteBegin()
+ElseIf buttonId = 1 Then
+ExecuteCopy()
+ElseIf buttonId = 2 Then
+
+End If
+end sub
