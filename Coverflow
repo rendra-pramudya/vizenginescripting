@@ -1,0 +1,102 @@
+sub OnInitPlugin()
+	RegisterPlugin("EllipticCoverflow")
+	RegisterPluginFolder("ScriptPlugins")
+	RegisterPluginType(PLUGIN_TYPE_FUNCTION)
+end sub
+
+Dim isRefresh as boolean
+
+dim g_bScript as boolean = false
+
+dim g_dPos as double = 0.0
+
+sub OnInit()
+	g_dPos = 0.0
+end sub
+
+sub OnInitParameters()
+	dim saOrient as array[string]
+	saOrient.push(" Horizontal ")
+	saOrient.push(" Vertical ")
+	RegisterRadioButton("Orientation", "Orientation", 1, saOrient)
+	RegisterParameterDouble("Width", "Width", 109.2, 0.0, 100000)
+	RegisterParameterDouble("Height", "Height", 157.4, 0.0, 100000)
+	RegisterParameterDouble("ScaleMin", "Scale Min.", .20, 0.0, 1.0)
+	RegisterParameterDouble("AlphaMin", "Alpha Min.", 100.0, 0.0, 100.0)
+	RegisterParameterDouble("Pos", "Pos", 300, 0.0, 360.0)	
+	RegisterPushButton("Refresh", "Refresh", 0)
+end sub
+
+
+
+sub OnParameterChanged(parameterName As String)
+	OnSlide
+end sub
+
+
+Sub OnSlide()
+	dim con as container
+	dim visCons as Integer
+	dim iCons as integer = childContainerCount
+	dim dStartPos as double
+	if getParameterInt("Orientation") == 0 then
+		dStartPos = 1.5
+	else
+		dStartPos = 2.0
+	end if
+	dim dPos as double = dStartPos * M_PI - (getParameterDouble("Pos")) * M_PI / 180.0	
+	If isRefresh then
+		isRefresh = false
+		dPos = dStartPos * M_PI - 90 * M_PI / 180.0	
+	end If
+	dim dWidth as double = getParameterDouble("Width")
+	dim dHeight as double = getParameterDouble("Height")
+	dim dScaleMin as double = getParameterDouble("ScaleMin")
+	dim dAlphaMin as double = getParameterDouble("AlphaMin")
+	dim dCurPos, dX, dY, dFac as double
+	visCons = 0
+	for i = 0 to iCons -1
+		con = getchildcontainerbyindex(i)
+		if con.active then
+				visCons =	visCons + 1
+		end if
+	Next
+	dim dDelta as double = M_PI / (double)visCons
+	for i = 0 to visCons
+		con = getchildcontainerbyindex(i)
+		if con.vizid > 0 then 
+			dCurPos = dPos
+
+			if dCurPos < dStartPos * M_PI then
+				dCurPos -= M_PI
+			end if
+
+			'println dCurpos
+
+			dX = dWidth * sin(dCurPos)
+			dY = dHeight * cos(dCurPos)
+	
+			if getParameterInt("Orientation") == 0 then
+				con.position.xyz = cVertex(dX, 0.0, dY)
+			else
+				con.position.xyz = cVertex(0.0, dY, dX)
+			end if
+			
+			if getParameterInt("Orientation") == 0 then
+				dFac = (1.0 - dY / dHeight)
+			else
+				dFac = (1.0 - dX / dWidth)
+			end if
+			con.scaling.xyz = cVertex(1.0 - (dFac * (1.0 - dScaleMin)))
+			if con.alpha.vizid <= 0 then con.createalpha()
+			con.alpha.value = 100.0 - (dFac * (100.0 - dAlphaMin))
+			dPos += dDelta
+		end if
+	next
+End Sub
+
+sub OnExecAction(buttonId As Integer)
+this.GetFunctionPluginInstance("Omo").PushButton("init")
+OnSlide()
+
+end sub
