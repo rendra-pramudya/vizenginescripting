@@ -1,0 +1,196 @@
+sub OnInitPlugin()
+	RegisterPlugin("LineChartWizard")
+	RegisterPluginFolder("AJCS_Designer")
+	RegisterPluginType(PLUGIN_TYPE_FUNCTION)
+end sub
+
+
+
+sub OnInitParameters()
+	RegisterParameterDouble("gWidth", "Graph Width", 512, 0, 1500)
+	RegisterParameterDouble("gHeight", "Graph Height", 200, 0, 700)
+	RegisterParameterString("Data", "Data", "", 20, 1000,"")
+	RegisterParameterString("XaxisLabel", "X Axis Label", "", 20, 1000,"")
+	RegisterParameterBool("isAutoYLabel", "Auto Y Label", True)
+	RegisterParameterDouble("gMaxValue", "Graph Y Max Value", 200, -150000, 150000)
+	RegisterParameterDouble("gMinValue", "Graph Y Min Value", 0, -150000, 150000)
+	Dim isAutoYLabel as Boolean = GetParameterBool("isAutoYLabel")
+	SendGuiParameterShow("gMaxValue", Cint(Not(isAutoYLabel)))
+	SendGuiParameterShow("gMinValue", Cint(Not(isAutoYLabel)))
+	SendGuiRefresh
+	RegisterParameterInt("iSplit", "number of Y Label", 3, 2, 8)	
+	RegisterParameterString("gPrefix", "Prefix", "", 7, 7,"")	
+	RegisterParameterString("gSuffix", "Suffix", "", 7, 7,"")		
+	RegisterPushButton("CreateGeometry", "Create Geometry", 0)
+	RegisterPushButton("ClearGeometry", "Clear Geometry", 1)	
+end sub
+
+sub OnParameterChanged(parameterName As String)
+	Dim gWidth as Double = GetParameterDouble("gWidth")
+	Dim gHeight as Double = GetParameterDouble("gHeight")
+	Dim gLabelXNum as integer = GetParameterInt("gLabelXNum")
+	Dim gLabelYNum as integer = GetParameterInt("gLabelYNum")
+	Dim sData as String = GetParameterString("Data")				
+	Dim c as Container
+	Dim separator as String = ","
+
+	'Axis
+	This.FindSubContainer("LabelValue").ScriptPluginInstance.SetParameterString("Data", GetParameterString("Data"))
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_1", 0)
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_2", 0)
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_3", gWidth)
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointY_1", gHeight)
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointY_2", 0)
+	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointY_3", 0)
+
+	'Vertical Label
+	Dim sYLabel as String = ""
+	Dim gmaxValue as Double = GetParameterDouble("gMaxValue")
+	Dim gminValue as Double = GetParameterDouble("gMinValue")	
+	Dim inumYLabel as Integer = GetParameterInt("iSplit")
+	
+	Dim isAutoYLabel as Boolean = GetParameterBool("isAutoYLabel")
+	SendGuiParameterShow("gMaxValue", Cint(Not(isAutoYLabel)))
+	SendGuiParameterShow("gMinValue", Cint(Not(isAutoYLabel)))
+	SendGuiRefresh	
+	
+	Dim arrsData as array[string]
+	Dim arrData as array[double]
+	sData.Split(separator,arrsData)
+
+	For i = 0 to arrsData.Size-1
+		arrData.Push(Cdbl(arrsData[i]))
+	Next
+	Dim minVal as double = arrData[0]
+	Dim maxVal as double = arrData[0]
+    For i = 1 To arrData.Size-1
+        If arrData[i] < minVal Then
+            minVal = arrData[i]
+        End If
+        If arrData[i] > maxVal Then
+            maxVal = arrData[i]
+        End If
+    Next
+	if minVal > 0 then minVal = 0 
+	if maxVal < 0 then maxval = 0
+	Dim RangeVal as double = Abs(maxVal - minval)
+
+	If isAutoYLabel = True Then
+	gminValue = minVal
+	gmaxValue = maxVal	
+	Else
+	End If
+
+	syLabel = Cstr(gminValue) & "," 
+	For i = 1  to inumYLabel - 2
+		sYlabel = sYLabel & Cstr(gminValue+((gmaxValue-gminValue)*i/(iNumYLabel-1))) & "," 
+	Next	
+	sYLabel = sYlabel & Cstr(gmaxValue)	
+	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sYLabel)	
+	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Prefix",GetParameterString("gPrefix"))
+	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Unit"," " & GetParameterString("gSuffix"))
+	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceY",gHeight)	
+	This.FindSubContainer("Scaler").Geometry.SetParameterString("DataY",sYLabel)			
+	This.FindSubContainer("Scaler").Geometry.SetParameterDouble("DataYStop",gHeight)			
+	
+	
+	'Filling up the graph data
+	c = This.FindSubContainer("LineCharts").FindSubContainer("Line1")		
+	c.FindSubContainer("Line").Geometry.SetParameterString("DataY",sData)
+	c.FindSubContainer("Area").Geometry.SetParameterString("DataY",sData)
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")			
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)		
+	c.FindSubContainer("LineLabel").Geometry.SetParameterString("DataY",sData)
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")		
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)			
+	c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY",sData)		
+	
+	'Vertical Label auto or manual
+	If isAutoYLabel = True Then
+		gminValue = minVal
+		gmaxValue = maxVal
+		c.FindSubContainer("Line").Geometry.SetParameterBool("DataYAutoScale",True)
+		c.FindSubContainer("Area").Geometry.SetParameterBool("DataYAutoScale",True)
+		c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterBool("DataAutoScale",True)				
+		c.FindSubContainer("LineLabel").Geometry.SetParameterBool("DataYAutoScale",True)		
+		c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterBool("DataAutoScale",True)				
+		c.FindSubContainer("Pointer").Geometry.SetParameterBool("DataYAutoScale",True)
+	Else
+		'Do some action here
+		Dim gRangeVal = Abs(gMaxValue-gMinValue)
+		Dim DataScale as Double = This.FindSubContainer("Scaler").Geometry.GetParameterDouble("DataYScale")
+		Dim DataOffset as Double = This.FindSubContainer("Scaler").Geometry.GetParameterDouble("DataYOffset")
+		c.FindSubContainer("Line").Geometry.SetParameterBool("DataYAutoScale",False)
+		c.FindSubContainer("Area").Geometry.SetParameterBool("DataYAutoScale",False)		
+		c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterBool("DataAutoScale",False)						
+		c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterBool("DataAutoScale",False)						
+		c.FindSubContainer("LineLabel").Geometry.SetParameterBool("DataYAutoScale",False)				
+		c.FindSubContainer("Pointer").Geometry.SetParameterBool("DataYAutoScale",False)				
+		
+		c.FindSubContainer("Line").Geometry.SetParameterDouble("DataYScale",DataScale)		
+		c.FindSubContainer("Line").Geometry.SetParameterDouble("DataYOffset",DataOffset)				
+		
+
+		c.FindSubContainer("Area").Geometry.SetParameterDouble("DataYScale",DataScale)
+		c.FindSubContainer("Area").Geometry.SetParameterDouble("DataYOffset",DataOffset)		
+		
+
+		c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataScale",DataScale)
+		c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataOffset",DataOffset)		
+
+
+		c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("DataYScale",DataScale)
+		c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("DataYOffset",DataOffset)		
+		
+		
+		c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataScale",DataScale)
+		c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataOffset",DataOffset)		
+		
+
+		c.FindSubContainer("Pointer").Geometry.SetParameterDouble("DataYScale",DataScale)		
+		c.FindSubContainer("Pointer").Geometry.SetParameterDouble("DataYOffset",DataOffset)				
+		
+	End If
+
+
+'hourizontal label
+	This.FindSubContainer("XLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",GetParameterString("XaxisLabel"))		
+	This.FindSubContainer("XLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)	
+	For i = 0 to This.FindSubContainer("XLabel").ChildContainerCount-1
+		c = This.FindSubContainer("XLabel").GetChildContainerByIndex(i)	
+		c.FindSubContainer("LevelLine").Geometry.SetParameterDouble("height", gHeight)
+	Next
+	c = This.FindSubContainer("LineCharts").FindSubContainer("Line1")
+	c.FindSubContainer("Line").Geometry.SetParameterDouble("Length",gWidth)
+	c.FindSubContainer("Line").Geometry.SetParameterDouble("DataYStop",gHeight)	
+	c.FindSubContainer("Area").Geometry.SetParameterDouble("Width",gWidth)		
+	c.FindSubContainer("Area").Geometry.SetParameterDouble("DataYStop",gHeight)		
+	
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)		
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataStop",gHeight)			
+	c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("Length",gWidth)
+	c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("DataYStop",gHeight)	
+	
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)				
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataStop",gHeight)			
+	c.FindSubContainer("Pointer").Geometry.SetParameterDouble("Length",gWidth)		
+	c.FindSubContainer("Pointer").Geometry.SetParameterDouble("DataYStop",gHeight)
+
+	For i = 0 to This.FindSubContainer("YLabel").ChildContainerCount-1
+		c = This.FindSubContainer("YLabel").GetChildContainerByIndex(i)	
+		c.FindSubContainer("LevelLine").Geometry.SetParameterDouble("width", gWidth)			
+	Next
+end sub
+
+
+sub OnExecAction(buttonId As Integer)
+If buttonId = 0 then'create geometry then
+This.AddContainer(TL_DOWN)
+This.FirstChildContainer.CreateGeometry("GEOM*WAREHOUSE/GEOM/VIZ_SCRIPT-PLUGIN/LineChart")
+System.SendCommand("#" & This.FirstChildContainer.VizId & "*GEOM SPLIT ")
+
+
+ElseIf buttonId = 1 then'create geometry then
+This.FirstChildContainer.Delete
+End If
+end sub
