@@ -5,11 +5,11 @@ sub OnInitPlugin()
 end sub
 
 
-
 sub OnInitParameters()
 	RegisterParameterDouble("gWidth", "Graph Width", 512, 0, 1500)
 	RegisterParameterDouble("gHeight", "Graph Height", 200, 0, 700)
 	RegisterParameterString("Data", "Data", "", 20, 1000,"")
+	RegisterParameterString("Delimiter", "Delimiter", ";", 1, 1,"")	
 	RegisterParameterString("XaxisLabel", "X Axis Label", "", 20, 1000,"")
 	RegisterParameterBool("isAutoYLabel", "Auto Y Label", True)
 	RegisterParameterDouble("gMaxValue", "Graph Y Max Value", 200, -150000, 150000)
@@ -23,6 +23,8 @@ sub OnInitParameters()
 	RegisterParameterString("gSuffix", "Suffix", "", 7, 7,"")		
 	RegisterPushButton("CreateGeometry", "Create Geometry", 0)
 	RegisterPushButton("ClearGeometry", "Clear Geometry", 1)	
+	RegisterParameterDouble("Start", "Start (%)", 0, 0, 100)	
+	RegisterParameterDouble("Stop", "Stop (%)", 100, 0, 100)
 end sub
 
 sub OnParameterChanged(parameterName As String)
@@ -30,12 +32,16 @@ sub OnParameterChanged(parameterName As String)
 	Dim gHeight as Double = GetParameterDouble("gHeight")
 	Dim gLabelXNum as integer = GetParameterInt("gLabelXNum")
 	Dim gLabelYNum as integer = GetParameterInt("gLabelYNum")
-	Dim sData as String = GetParameterString("Data")				
+	Dim sData as String = GetParameterString("Data")	
+	Dim delim as string = GetParameterString("Delimiter")	
+	Dim sStart as double = GetParameterDouble("Start")				
+	Dim sStop as double = GetParameterDouble("Stop")		
 	Dim c as Container
 	Dim separator as String = ","
 
 	'Axis
 	This.FindSubContainer("LabelValue").ScriptPluginInstance.SetParameterString("Data", GetParameterString("Data"))
+	This.FindSubContainer("LabelValue").ScriptPluginInstance.SetParameterString("DataDelim",delim)	
 	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_1", 0)
 	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_2", 0)
 	This.FindSubContainer("AxisLine").Geometry.SetParameterDouble("controlPointX_3", gWidth)
@@ -56,7 +62,7 @@ sub OnParameterChanged(parameterName As String)
 	
 	Dim arrsData as array[string]
 	Dim arrData as array[double]
-	sData.Split(separator,arrsData)
+	sData.Split(delim,arrsData)
 
 	For i = 0 to arrsData.Size-1
 		arrData.Push(Cdbl(arrsData[i]))
@@ -81,27 +87,34 @@ sub OnParameterChanged(parameterName As String)
 	Else
 	End If
 
-	syLabel = Cstr(gminValue) & "," 
+	syLabel = Cstr(gminValue) & delim 
 	For i = 1  to inumYLabel - 2
-		sYlabel = sYLabel & Cstr(gminValue+((gmaxValue-gminValue)*i/(iNumYLabel-1))) & "," 
+		sYlabel = sYLabel & Cstr(gminValue+((gmaxValue-gminValue)*i/(iNumYLabel-1))) & delim
 	Next	
 	sYLabel = sYlabel & Cstr(gmaxValue)	
+	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("DataDelim",delim)
 	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sYLabel)	
 	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Prefix",GetParameterString("gPrefix"))
 	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Unit"," " & GetParameterString("gSuffix"))
 	This.FindSubContainer("YLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceY",gHeight)	
-	This.FindSubContainer("Scaler").Geometry.SetParameterString("DataY",sYLabel)			
-	This.FindSubContainer("Scaler").Geometry.SetParameterDouble("DataYStop",gHeight)			
+	This.FindSubContainer("Scaler").Geometry.SetParameterString("DataDelim",delim)
+	This.FindSubContainer("Scaler").Geometry.SetParameterString("DataY",sYLabel)				
+	This.FindSubContainer("Scaler").Geometry.SetParameterDouble("DataYStop",gHeight)	
 	
-	
-	'Filling up the graph data
+	'Set Delimiter
+
 	c = This.FindSubContainer("LineCharts").FindSubContainer("Line1")		
+	c.FindSubContainer("Line").Geometry.SetParameterString("DataDelim",delim)
+	c.FindSubContainer("Area").Geometry.SetParameterString("DataDelim",delim)
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("DataDelim",delim)
+	c.FindSubContainer("LineLabel").Geometry.SetParameterString("DataDelim",delim)
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("DataDelim",delim)
+	c.FindSubContainer("Pointer").Geometry.SetParameterString("DataDelim",delim)
+	'Filling up the graph data	
 	c.FindSubContainer("Line").Geometry.SetParameterString("DataY",sData)
 	c.FindSubContainer("Area").Geometry.SetParameterString("DataY",sData)
-	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")			
 	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)		
 	c.FindSubContainer("LineLabel").Geometry.SetParameterString("DataY",sData)
-	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")		
 	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)			
 	c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY",sData)		
 	
@@ -154,6 +167,8 @@ sub OnParameterChanged(parameterName As String)
 
 
 'hourizontal label
+
+	This.FindSubContainer("XLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("DataDelim",delim)
 	This.FindSubContainer("XLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",GetParameterString("XaxisLabel"))		
 	This.FindSubContainer("XLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)	
 	For i = 0 to This.FindSubContainer("XLabel").ChildContainerCount-1
@@ -163,16 +178,24 @@ sub OnParameterChanged(parameterName As String)
 	c = This.FindSubContainer("LineCharts").FindSubContainer("Line1")
 	c.FindSubContainer("Line").Geometry.SetParameterDouble("Length",gWidth)
 	c.FindSubContainer("Line").Geometry.SetParameterDouble("DataYStop",gHeight)	
+	c.FindSubContainer("Line").Geometry.SetParameterDouble("Start",sStart)
+	c.FindSubContainer("Line").Geometry.SetParameterDouble("Stop",sStop)	
+	
 	c.FindSubContainer("Area").Geometry.SetParameterDouble("Width",gWidth)		
 	c.FindSubContainer("Area").Geometry.SetParameterDouble("DataYStop",gHeight)		
+	c.FindSubContainer("Area").Geometry.SetParameterDouble("Start",sStart)
+	c.FindSubContainer("Area").Geometry.SetParameterDouble("Stop",sStop)		
+	
 	
 	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)		
 	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataStop",gHeight)			
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterDouble("TotalLength",sStop)				
 	c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("Length",gWidth)
 	c.FindSubContainer("LineLabel").Geometry.SetParameterDouble("DataYStop",gHeight)	
 	
 	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DistanceX",gWidth)				
 	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("DataStop",gHeight)			
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterDouble("TotalLength",sStop)					
 	c.FindSubContainer("Pointer").Geometry.SetParameterDouble("Length",gWidth)		
 	c.FindSubContainer("Pointer").Geometry.SetParameterDouble("DataYStop",gHeight)
 
@@ -182,14 +205,24 @@ sub OnParameterChanged(parameterName As String)
 	Next
 end sub
 
+Sub ClearGraphValue()
+	Dim c as Container
+	c = This.FindSubContainer("LineCharts").FindSubContainer("Line1")	
+	
+
+	c.FindSubContainer("Line").Geometry.SetParameterString("DataY","")
+	c.FindSubContainer("Area").Geometry.SetParameterString("DataY","")
+	c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")		
+	c.FindSubContainer("LineLabel").Geometry.SetParameterString("DataY","")
+	c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data","")			
+	c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY","")	
+End Sub
+
 
 sub OnExecAction(buttonId As Integer)
 If buttonId = 0 then'create geometry then
 This.AddContainer(TL_DOWN)
 This.FirstChildContainer.CreateGeometry("GEOM*WAREHOUSE/GEOM/VIZ_SCRIPT-PLUGIN/LineChart")
-System.SendCommand("#" & This.FirstChildContainer.VizId & "*GEOM SPLIT ")
-
-
 ElseIf buttonId = 1 then'create geometry then
 This.FirstChildContainer.Delete
 End If
