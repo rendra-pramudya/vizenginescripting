@@ -8,7 +8,11 @@ sub OnInitParameters()
 	Dim arrLineType as array[string]
 	arrLineType.Push ("Linear")
 	arrLineType.Push ("Spline")	
-'	arrLineType.Push ("Constraint Spline")		
+
+	Dim arrPointerShape as array[string]
+	arrPointerShape.Push ("Circle")	
+	arrPointerShape.Push ("Rectangle")
+	arrPointerShape.Push ("Diamond")		
 
 
 	RegisterParameterDouble("gWidth", "Graph Width", 512, 0, 1500)
@@ -29,15 +33,22 @@ sub OnInitParameters()
 	RegisterSeparator("lblDataSection", "Data Section")
 	RegisterParameterInt("numOfLines", "number of Lines", 1, 1, 7)			
 	
+	
+	Dim	ccolor as color
 	RegisterParameterString("Data1", "Data Y 1", "", 20, 1000,"")
+	ccolor.rgb = cVertex(0.7,0.7,0.7)
+	RegisterParameterColor("vLineColor1", "Line Color 1", ccolor)		
 	For i = 2 to 7
 		RegisterParameterString("Data" & i, "Data Y " & i, "", 20, 1000,"")
+		ccolor.rgb = cVertex(0.7,0.7,0.7)
+		RegisterParameterColor("vLineColor" & i, "Line Color " & i, ccolor)		
 		SendGuiParameterShow("Data" & i , 1)		
+		SendGuiParameterShow("vLineColor" & i , 1)				
 	Next
 	
 	
 	RegisterRadioButton("LineType", "Line Type", 0, arrLineTYpe)
-	
+	RegisterRadioButton("PointerShape", "Pointer Shape", 0, arrPointerShape)
 	SendGuiRefresh
 	RegisterParameterString("Delimiter", "Delimiter", ";", 1, 1,"")	
 	RegisterParameterString("XaxisLabel", "X Axis Label", "", 20, 1000,"")	
@@ -45,6 +56,38 @@ sub OnInitParameters()
 	RegisterPushButton("ClearGeometry", "Clear Geometry", 1)	
 	RegisterParameterDouble("Start", "Start (%)", 0, 0, 100)	
 	RegisterParameterDouble("Stop", "Stop (%)", 100, 0, 100)
+	
+	
+	
+	RegisterInfoText("
+	Created by Rendra Adi Pramudya, Al Jazeera staff ID 1985, September 2025
+	Copyright: Al Jazeera Media Network 	
+	
+	LineChartWizard is a plugin to simplify designer to create a line chart using VDT plugin
+	Graph Width: To set desired width of the chart
+	Graph Height: To set desired height of the chart	
+	Prefix: Prefix of the Y Value on the left side
+	Suffix: Suffix of the Y Value on the left side. can be used for units
+	Number of Y Label: Is how many horizontal lines in the chart, minimum 2, maximum 8
+	Auto Y Label, is to automatically measure the Y Label based on Data Y 1		
+	Graph Y Max Value: To set maximum Y value in the chart
+	Graph Y Min Value: To set minimum Y value in the chart
+	Sub Line Width: To set the width of the grid
+	Number of Lines: To define how many lines in the chart, maximum 7 to limit visual complexity
+	Data Y 1 to 7, this is where you put the data
+	Line Color 1 to 7, this is where you colorize the line
+	Line Type,: Linear or Spline
+	Pointer Shape: Rectangle, Circle, Diamond
+	Delimiter: Separator between data point in Data Y 1 to 7
+	X Label: This is where you put the time series, like date, days, years
+	Create Geometry: to create geometry
+	Clear Geometry: to delete geometry
+	Start % : The beginning of the chart
+	Stop % : The end of the chart, can be animated for revealing the chart
+
+	") 
+	
+	RegisterPluginVersion(2, 0, 0)
 end sub
 
 sub OnParameterChanged(parameterName As String)
@@ -84,9 +127,11 @@ sub OnParameterChanged(parameterName As String)
 	
 	For i = 2 to 7
 		If i > iNumOfLines then
-			SendGuiParameterShow("Data" & i , 0)		
+			SendGuiParameterShow("Data" & i , 0)	
+			SendGuiParameterShow("vLineColor" & i , 0)					
 		Else
 			SendGuiParameterShow("Data" & i , 1)		
+			SendGuiParameterShow("vLineColor" & i , 1)				
 		End If
 	Next	
 	SendGuiRefresh	
@@ -145,9 +190,18 @@ sub OnParameterChanged(parameterName As String)
 	
 	'Building the graph, iteration for multiple graph can be done here
 	'SetDelimiter
+	Dim j as integer
+	Dim cColor as Color 
 	For i = 1 to 7
+		cColor = GetParameterColor("vLineColor" & i)
 		sData = GetParameterString("Data" & i)
 		c = This.FindSubContainer("LineCharts").FindSubContainer("Line" & i)
+		
+			For j = 0 to c.FindSubContainer("Pointer").ChildContainerCount -1
+
+				SetNoggiShape(c.FindSubContainer("Pointer").GetChildContainerByIndex(j),GetParameterInt("PointerShape"))	
+			Next		
+		
 		If i > iNumOfLines Then
 			c.active = False
 		Else
@@ -163,11 +217,16 @@ sub OnParameterChanged(parameterName As String)
 			c.FindSubContainer("Pointer").Geometry.SetParameterString("DataDelim",delim)
 			'Filling up the graph data	
 			c.FindSubContainer("Line").Geometry.SetParameterString("DataY",sData)
+			c.FindSubContainer("Line").Material.Diffuse = cColor			
 			c.FindSubContainer("Area").Geometry.SetParameterString("DataY",sData)
+			c.FindSubContainer("Area").Material.Diffuse = cColor						
+			
 			c.FindSubContainer("LineLabel").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)		
 			c.FindSubContainer("LineLabel").Geometry.SetParameterString("DataY",sData)
 			c.FindSubContainer("Pointer").GetFunctionPluginInstance("DataLabel").SetParameterString("Data",sData)			
-			c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY",sData)		
+			c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY",sData)	
+			c.FindSubContainer("Pointer").Material.Diffuse = cColor						
+
 			c.FindSubContainer("LabelValue").ScriptPluginInstance.SetParameterString("Data", sData)
 			c.FindSubContainer("LabelValue").ScriptPluginInstance.SetParameterString("DataDelim",delim)	
 		
@@ -285,6 +344,35 @@ Sub ClearGraphValue()
 	c.FindSubContainer("Pointer").Geometry.SetParameterString("DataY","")	
 End Sub
 
+Sub SetNoggiShape(c as Container, shape as integer)
+
+If shape = 0 then ' circle
+	c.geometry.SetparameterDouble("width", 3)
+	c.geometry.SetparameterDouble("height", 3)	
+	c.geometry.SetparameterDouble("bevel_0", 3)
+	c.geometry.SetparameterDouble("bevel_1", 3)
+	c.geometry.SetparameterDouble("bevel_2", 3)
+	c.geometry.SetparameterDouble("bevel_3", 3)
+	c.geometry.SetparameterInt("noEdgePoints", 2)	
+ElseIf shape = 1 then
+	c.geometry.SetparameterDouble("width", 5)
+	c.geometry.SetparameterDouble("height", 5)	
+	c.geometry.SetparameterDouble("bevel_0", 0)
+	c.geometry.SetparameterDouble("bevel_1", 0)
+	c.geometry.SetparameterDouble("bevel_2", 0)
+	c.geometry.SetparameterDouble("bevel_3", 0)
+	c.geometry.SetparameterInt("noEdgePoints", 0)
+ElseIf shape = 2 then
+	c.geometry.SetparameterDouble("width", 3)
+	c.geometry.SetparameterDouble("height", 3)	
+	c.geometry.SetparameterDouble("bevel_0", 3)
+	c.geometry.SetparameterDouble("bevel_1", 3)
+	c.geometry.SetparameterDouble("bevel_2", 3)
+	c.geometry.SetparameterDouble("bevel_3", 3)
+	c.geometry.SetparameterInt("noEdgePoints", 0)
+End If
+End Sub
+
 
 sub OnExecAction(buttonId As Integer)
 If buttonId = 0 then'create geometry then
@@ -296,4 +384,3 @@ ElseIf buttonId = 1 then'create geometry then
 This.FirstChildContainer.Delete
 End If
 end sub
-
